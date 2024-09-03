@@ -1,0 +1,77 @@
+document.addEventListener('DOMContentLoaded', function() {
+    const taskForm = document.getElementById('task-form');
+    const taskList = document.getElementById('task-list');
+    const apiUrl = 'http://localhost:3000/tasks';
+
+    // Load tasks from the backend
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(task => {
+                addTaskToDOM(task);
+            });
+        });
+
+    // Event listener for adding a new task
+    taskForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const taskInput = document.getElementById('new-task');
+        const taskDescription = taskInput.value;
+
+        // Send the new task to the backend
+        fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ description: taskDescription })
+        })
+        .then(response => response.json())
+        .then(task => {
+            addTaskToDOM({ id: task.id, description: taskDescription, completed: 0 });
+            taskInput.value = '';
+        });
+    });
+
+    // Function to add task to the DOM
+    function addTaskToDOM(task) {
+        const li = document.createElement('li');
+        li.dataset.id = task.id;
+        li.innerHTML = `
+            ${task.description} 
+            <button class="delete">x</button>
+        `;
+        if (task.completed) {
+            li.classList.add('completed');
+        }
+        taskList.appendChild(li);
+    }
+
+    // Event listener for task actions (complete or delete)
+    taskList.addEventListener('click', function(e) {
+        if (e.target.classList.contains('delete')) {
+            const taskElement = e.target.parentElement;
+            const taskId = taskElement.dataset.id;
+
+            // Delete task from backend
+            fetch(`${apiUrl}/${taskId}`, {
+                method: 'DELETE'
+            }).then(() => {
+                taskElement.remove();
+            });
+        } else {
+            const taskElement = e.target;
+            const taskId = taskElement.dataset.id;
+            const isCompleted = taskElement.classList.toggle('completed');
+
+            // Update task completion status in the backend
+            fetch(`${apiUrl}/${taskId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ completed: isCompleted ? 1 : 0 })
+            });
+        }
+    });
+});

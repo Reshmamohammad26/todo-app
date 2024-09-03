@@ -1,0 +1,47 @@
+const express = require('express');
+const app = express();
+const db = require('./database');
+const cors = require('cors');
+
+app.use(express.json());
+app.use(cors());  // Enable CORS to allow requests from the frontend
+
+// Get all tasks
+app.get('/tasks', (req, res) => {
+    db.all('SELECT * FROM tasks', [], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows);
+    });
+});
+
+// Add a new task
+app.post('/tasks', (req, res) => {
+    const { description } = req.body;
+    db.run('INSERT INTO tasks (description) VALUES (?)', [description], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(201).json({ id: this.lastID });
+    });
+});
+
+// Update task completion
+app.put('/tasks/:id', (req, res) => {
+    const { id } = req.params;
+    const { completed } = req.body;
+    db.run('UPDATE tasks SET completed = ? WHERE id = ?', [completed, id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Task updated!' });
+    });
+});
+
+// Delete a task
+app.delete('/tasks/:id', (req, res) => {
+    const { id } = req.params;
+    db.run('DELETE FROM tasks WHERE id = ?', id, function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Task deleted!' });
+    });
+});
+
+app.listen(3000, () => {
+    console.log('Server is running on http://localhost:3000');
+});
